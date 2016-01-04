@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -32,7 +33,7 @@ namespace FontAwesomeEnum
 
         static void SafeMain(string[] args)
         {
-            Console.WriteLine("FontAwesomeEnum - Version 1.0. Copyright (C) SoftFluent S.A.S 2013-" + DateTime.Now.Year + ". All rights reserved.");
+            Console.WriteLine("FontAwesomeEnum - Version 1.1. Copyright (C) SoftFluent S.A.S 2013-" + DateTime.Now.Year + ". All rights reserved.");
             Console.WriteLine("");
 
             OptionHelp = CommandLineUtilities.GetArgument("?", false);
@@ -117,7 +118,7 @@ namespace FontAwesomeEnum
                     writer.WriteLine("\t\t/// </summary>");
                     writer.Write('\t');
                     writer.Write('\t');
-                    writer.Write(kv.Item1);
+                    writer.Write(GetValidIdentifier(kv.Item1));
                     writer.Write(" = 0x");
                     writer.Write(kv.Item2);
                     if (i < (enums.Count - 1))
@@ -140,7 +141,7 @@ namespace FontAwesomeEnum
                     writer.WriteLine("\t\t/// <summary>");
                     writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
                     writer.WriteLine("\t\t/// </summary>");
-                    writer.WriteLine("\t\tpublic const char " + kv.Item1 + " = '\\u" + kv.Item2 + "';");
+                    writer.WriteLine("\t\tpublic const char " + GetValidIdentifier(kv.Item1) + " = '\\u" + kv.Item2 + "';");
                     if (i < (enums.Count - 1))
                     {
                         writer.WriteLine();
@@ -184,6 +185,96 @@ namespace FontAwesomeEnum
                 }
             }
             return sb.ToString();
+        }
+
+        static string GetValidIdentifier(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                throw new ArgumentNullException("text");
+
+            int start = 0;
+            StringBuilder sb = new StringBuilder(text.Length);
+            if (IsValidIdentifierStart(text[0]))
+            {
+                sb.Append(text[0]);
+                start = 1;
+            }
+            else
+            {
+                sb.Append('_');
+            }
+
+            bool nextUpper = false;
+            for (int i = start; i < text.Length; i++)
+            {
+                if (IsValidIdentifierPart(text[i]))
+                {
+                    if (nextUpper)
+                    {
+                        sb.Append(char.ToUpper(text[i], CultureInfo.CurrentCulture));
+                        nextUpper = false;
+                    }
+                    else
+                    {
+                        sb.Append(text[i]);
+                    }
+                }
+                else
+                {
+                    if (text[i] == ' ')
+                    {
+                        nextUpper = true;
+                    }
+                    else
+                    {
+                        sb.Append('_');
+                    }
+                }
+            }
+            return sb.ToString();
+        }
+
+        static bool IsValidIdentifierStart(char character)
+        {
+            if (character == '_')
+                return true;
+
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(character);
+            switch (category)
+            {
+                case UnicodeCategory.UppercaseLetter://Lu
+                case UnicodeCategory.LowercaseLetter://Ll
+                case UnicodeCategory.TitlecaseLetter://Lt
+                case UnicodeCategory.ModifierLetter://Lm
+                case UnicodeCategory.OtherLetter://Lo
+                case UnicodeCategory.LetterNumber://Nl
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        static bool IsValidIdentifierPart(char character)
+        {
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(character);
+            switch (category)
+            {
+                case UnicodeCategory.UppercaseLetter:
+                case UnicodeCategory.LowercaseLetter:
+                case UnicodeCategory.TitlecaseLetter:
+                case UnicodeCategory.ModifierLetter:
+                case UnicodeCategory.LetterNumber:
+                case UnicodeCategory.NonSpacingMark:
+                case UnicodeCategory.SpacingCombiningMark:
+                case UnicodeCategory.DecimalDigitNumber:
+                case UnicodeCategory.ConnectorPunctuation:
+                case UnicodeCategory.Format:
+                    return true;
+
+                default:
+                    return false;
+            }
         }
     }
 }

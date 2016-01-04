@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 #endif
 [assembly: AssemblyCompany("SoftFluent S.A.S - http://www.softfluent.com")]
 [assembly: AssemblyProduct("FontAwesomeEnum")]
-[assembly: AssemblyCopyright("Copyright (C) 2014 SoftFluent S.A.S. All rights reserved.")]
+[assembly: AssemblyCopyright("Copyright (C) 2014-2016 SoftFluent S.A.S. All rights reserved.")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("20afc51f-948b-4b2d-9d04-4e7784983075")]
