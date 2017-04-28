@@ -58,23 +58,9 @@ namespace FontAwesomeEnum
             }
         }
 
-        public static IDictionary<string, string> NamedArguments
-        {
-            get
-            {
-                return _namedArguments;
-            }
-        }
-
-        public static IDictionary<int, string> PositionArguments
-        {
-            get
-            {
-                return _positionArguments;
-            }
-        }
-
-        public static bool HelpRequested { get; private set; }
+        public static IDictionary<string, string> NamedArguments => _namedArguments;
+        public static IDictionary<int, string> PositionArguments => _positionArguments;
+        public static bool HelpRequested { get; }
 
         public static string CommandLineWithoutExe
         {
@@ -165,7 +151,7 @@ namespace FontAwesomeEnum
         public static T GetArgument<T>(string name, T defaultValue, IFormatProvider provider)
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
 
             string s;
             if (!_namedArguments.TryGetValue(name, out s))
@@ -180,7 +166,7 @@ namespace FontAwesomeEnum
         public static bool HasArgument(string name)
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
 
             string s;
             return _namedArguments.TryGetValue(name, out s);
@@ -194,10 +180,10 @@ namespace FontAwesomeEnum
         public static object GetArgument(string name, object defaultValue, Type conversionType, IFormatProvider provider)
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
 
             if (conversionType == null)
-                throw new ArgumentNullException("conversionType");
+                throw new ArgumentNullException(nameof(conversionType));
 
             string s;
             if (!_namedArguments.TryGetValue(name, out s))
