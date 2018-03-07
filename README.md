@@ -1,5 +1,5 @@
 # FontAwesomeEnum
-Creates enums and resources C# classes to be able to use the Font-Awesome icons set (currently version 4.7, available here: http://fortawesome.github.io/Font-Awesome/) in .NET a WPF applications.
+Creates enums and resources C# classes to be able to use the Font-Awesome icons set (from versions 4 to 5, available here: http://fortawesome.github.io/Font-Awesome/) in .NET a WPF applications.
 
 The generated FontAwesomeEnum.cs file looks like this:
 
