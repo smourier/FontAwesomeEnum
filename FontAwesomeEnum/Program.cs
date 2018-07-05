@@ -8,9 +8,11 @@ namespace FontAwesomeEnum
 {
     class Program
     {
+        private static Dictionary<string, List<string>> _prefixes = new Dictionary<string, List<string>>();
         private static bool OptionHelp;
         private static string OptionInputPath;
         private static string OptionOutputPath;
+        private static string OptionPrefixAttributeName;
 
         static void Main(string[] args)
         {
@@ -33,12 +35,13 @@ namespace FontAwesomeEnum
 
         static void SafeMain(string[] args)
         {
-            Console.WriteLine("FontAwesomeEnum - Version 1.2.0 Copyright (C) Simon Mourier 2013-" + DateTime.Now.Year + ". All rights reserved.");
+            Console.WriteLine("FontAwesomeEnum - Version 1.3.0 Copyright (C) Simon Mourier 2013-" + DateTime.Now.Year + ". All rights reserved.");
             Console.WriteLine("");
 
             OptionHelp = CommandLineUtilities.GetArgument("?", false);
             OptionInputPath = CommandLineUtilities.GetArgument<string>(0, null);
             OptionOutputPath = CommandLineUtilities.GetArgument<string>(1, "FontAwesomeEnum.cs");
+            OptionPrefixAttributeName = CommandLineUtilities.GetArgument<string>(2, null);
 
             if (OptionHelp || Environment.GetCommandLineArgs().Length == 1)
             {
@@ -49,7 +52,30 @@ namespace FontAwesomeEnum
 
             Console.WriteLine("Input file path: " + OptionInputPath);
             Console.WriteLine("Output file path: " + OptionOutputPath);
+            if (OptionPrefixAttributeName != null)
+            {
+                Console.WriteLine("Prefix Attribute Name: " + OptionPrefixAttributeName);
+                string path = Path.GetFullPath(Path.Combine(OptionInputPath, @"..\..\svgs"));
+                if (Directory.Exists(path))
+                {
+                    foreach (var prefixDir in Directory.GetDirectories(path))
+                    {
+                        string prefixName = Path.GetFileName(prefixDir);
+                        foreach (var fa in Directory.GetFiles(prefixDir, "*.svg"))
+                        {
+                            string faName = Path.GetFileNameWithoutExtension(fa);
+                            if (!_prefixes.TryGetValue(faName, out var list))
+                            {
+                                list = new List<string>();
+                                _prefixes.Add(faName, list);
+                            }
+                            list.Add(prefixName);
+                        }
+                    }
+                }
+            }
 
+            string version = null;
             var enums = new List<Tuple<string, string, string>>();
             using (var reader = new StreamReader(OptionInputPath, Encoding.Default))
             {
@@ -59,8 +85,21 @@ namespace FontAwesomeEnum
                     if (line == null)
                         break;
 
+                    const string versionToken = "@fa-version:";
                     const string varToken = "@fa-var-";
                     line = line.Trim();
+
+                    if (line.StartsWith(versionToken))
+                    {
+                        version = line.Substring(versionToken.Length + 1).Trim();
+                        if (version.Length > 2 && version[0] == '"' && version[version.Length - 2] == '"')
+                        {
+                            version = version.Substring(1, version.Length - 3);
+                        }
+                        Console.WriteLine("Version: " + version);
+                        continue;
+                    }
+
                     if (!line.StartsWith(varToken))
                         continue;
 
@@ -105,7 +144,14 @@ namespace FontAwesomeEnum
                 writer.WriteLine("namespace FontAwesome");
                 writer.WriteLine("{");
                 writer.WriteLine("\t/// <summary>");
-                writer.WriteLine("\t/// Font Awesome Resources.");
+                if (version != null)
+                {
+                    writer.WriteLine("\t/// Font Awesome Resources V" + version);
+                }
+                else
+                {
+                    writer.WriteLine("\t/// Font Awesome Resources.");
+                }
                 writer.WriteLine("\t/// </summary>");
                 writer.WriteLine("\tpublic enum FontAwesomeEnum");
                 writer.WriteLine("\t{");
@@ -115,6 +161,15 @@ namespace FontAwesomeEnum
                     writer.WriteLine("\t\t/// <summary>");
                     writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
                     writer.WriteLine("\t\t/// </summary>");
+                    if (_prefixes.TryGetValue(kv.Item3, out var list))
+                    {
+                        foreach (var prefix in list)
+                        {
+                            writer.Write('\t');
+                            writer.Write('\t');
+                            writer.WriteLine("[Prefix(\"" + prefix + "\")]");
+                        }
+                    }
                     writer.Write('\t');
                     writer.Write('\t');
                     writer.Write(GetValidIdentifier(kv.Item1));
@@ -140,6 +195,16 @@ namespace FontAwesomeEnum
                     writer.WriteLine("\t\t/// <summary>");
                     writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
                     writer.WriteLine("\t\t/// </summary>");
+                    if (_prefixes.TryGetValue(kv.Item3, out var list))
+                    {
+                        foreach (var prefix in list)
+                        {
+                            writer.Write('\t');
+                            writer.Write('\t');
+                            writer.WriteLine("[Prefix(\"" + prefix + "\")]");
+                        }
+                    }
+
                     writer.WriteLine("\t\tpublic const char " + GetValidIdentifier(kv.Item1) + " = '\\u" + kv.Item2 + "';");
                     if (i < (enums.Count - 1))
                     {
