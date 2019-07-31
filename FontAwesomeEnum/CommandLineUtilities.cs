@@ -25,7 +25,10 @@ namespace FontAwesomeEnum
                     continue;
 
                 string upper = arg.ToUpperInvariant();
-                if (arg == "/?" || arg == "-?" || upper == "/HELP" || upper == "-HELP")
+                if (string.Equals(arg, "/?", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(arg, "-?", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(upper, "/HELP", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(upper, "-HELP", StringComparison.OrdinalIgnoreCase))
                 {
                     HelpRequested = true;
                 }
@@ -82,19 +85,14 @@ namespace FontAwesomeEnum
             }
         }
 
-        public static T GetArgument<T>(IEnumerable<string> arguments, string name, T defaultValue)
-        {
-            return GetArgument(arguments, name, defaultValue, null);
-        }
-
-        public static T GetArgument<T>(IEnumerable<string> arguments, string name, T defaultValue, IFormatProvider provider)
+        public static T GetArgument<T>(IEnumerable<string> arguments, string name, T defaultValue, IFormatProvider provider = null)
         {
             if (arguments == null)
                 return defaultValue;
 
             foreach (string arg in arguments)
             {
-                if (arg.StartsWith("-") || arg.StartsWith("/"))
+                if (arg.StartsWith("-", StringComparison.OrdinalIgnoreCase) || arg.StartsWith("/", StringComparison.OrdinalIgnoreCase))
                 {
                     int pos = arg.IndexOfAny(new[] { '=', ':' }, 1);
                     string argName = pos < 0 ? arg.Substring(1) : arg.Substring(1, pos - 1);
@@ -115,46 +113,28 @@ namespace FontAwesomeEnum
             return defaultValue;
         }
 
-        public static T GetArgument<T>(int index, T defaultValue)
+        public static T GetArgument<T>(int index, T defaultValue, IFormatProvider provider = null)
         {
-            return GetArgument(index, defaultValue, null);
-        }
-
-        public static T GetArgument<T>(int index, T defaultValue, IFormatProvider provider)
-        {
-            string s;
-            if (!_positionArguments.TryGetValue(index, out s))
+            if (!_positionArguments.TryGetValue(index, out string s))
                 return defaultValue;
 
             return ChangeType(s, defaultValue, provider);
         }
 
-        public static object GetArgument(int index, object defaultValue, Type conversionType)
+        public static object GetArgument(int index, object defaultValue, Type conversionType, IFormatProvider provider = null)
         {
-            return GetArgument(index, defaultValue, conversionType, null);
-        }
-
-        public static object GetArgument(int index, object defaultValue, Type conversionType, IFormatProvider provider)
-        {
-            string s;
-            if (!_positionArguments.TryGetValue(index, out s))
+            if (!_positionArguments.TryGetValue(index, out string s))
                 return defaultValue;
 
             return ChangeType(s, conversionType, defaultValue, provider);
         }
 
-        public static T GetArgument<T>(string name, T defaultValue)
-        {
-            return GetArgument(name, defaultValue, null);
-        }
-
-        public static T GetArgument<T>(string name, T defaultValue, IFormatProvider provider)
+        public static T GetArgument<T>(string name, T defaultValue, IFormatProvider provider = null)
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
 
-            string s;
-            if (!_namedArguments.TryGetValue(name, out s))
+            if (!_namedArguments.TryGetValue(name, out string s))
                 return defaultValue;
 
             if (typeof(T) == typeof(bool) && string.IsNullOrEmpty(s))
@@ -168,16 +148,10 @@ namespace FontAwesomeEnum
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
 
-            string s;
-            return _namedArguments.TryGetValue(name, out s);
+            return _namedArguments.TryGetValue(name, out _);
         }
 
-        public static object GetArgument(string name, object defaultValue, Type conversionType)
-        {
-            return GetArgument(name, defaultValue, conversionType, null);
-        }
-
-        public static object GetArgument(string name, object defaultValue, Type conversionType, IFormatProvider provider)
+        public static object GetArgument(string name, object defaultValue, Type conversionType, IFormatProvider provider = null)
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
@@ -185,8 +159,7 @@ namespace FontAwesomeEnum
             if (conversionType == null)
                 throw new ArgumentNullException(nameof(conversionType));
 
-            string s;
-            if (!_namedArguments.TryGetValue(name, out s))
+            if (!_namedArguments.TryGetValue(name, out string s))
                 return defaultValue;
 
             if (conversionType == typeof(bool) && string.IsNullOrEmpty(s))
@@ -204,11 +177,7 @@ namespace FontAwesomeEnum
             return value.Length == 0 ? null : value;
         }
 
-        private static T ChangeType<T>(object value, T defaultValue, IFormatProvider provider)
-        {
-            return (T)ChangeType(value, typeof(T), defaultValue, provider);
-        }
-
+        private static T ChangeType<T>(object value, T defaultValue, IFormatProvider provider) => (T)ChangeType(value, typeof(T), defaultValue, provider);
         private static object ChangeType(object value, Type conversionType, object defaultValue, IFormatProvider provider)
         {
             if (value == null)
@@ -222,7 +191,14 @@ namespace FontAwesomeEnum
             if (conversionType.IsAssignableFrom(value.GetType()))
                 return value;
 
-            return Convert.ChangeType(value, conversionType, provider);
+            try
+            {
+                return Convert.ChangeType(value, conversionType, provider);
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
     }
 }
