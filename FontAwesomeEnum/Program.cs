@@ -10,11 +10,15 @@ namespace FontAwesomeEnum
     {
         private static readonly Dictionary<string, List<string>> _prefixes = new Dictionary<string, List<string>>();
         private static bool _optionHelp;
+        private static bool _optionEnums;
+        private static bool _optionResources;
         private static string _optionInputPath;
         private static string _optionOutputPath;
         private static string _optionPrefixAttributeName;
+        private static string _optionSvgsPath;
+        private static bool _optionDuo;
 
-        static void Main()
+        private static void Main()
         {
             if (System.Diagnostics.Debugger.IsAttached)
             {
@@ -33,15 +37,19 @@ namespace FontAwesomeEnum
             }
         }
 
-        static void SafeMain()
+        private static void SafeMain()
         {
             Console.WriteLine("FontAwesomeEnum - Version 1.4.0 Copyright (C) Simon Mourier 2013-" + DateTime.Now.Year + ". All rights reserved.");
             Console.WriteLine("");
 
             _optionHelp = CommandLineUtilities.GetArgument("?", false);
             _optionInputPath = CommandLineUtilities.GetArgument<string>(0, null);
-            _optionOutputPath = CommandLineUtilities.GetArgument<string>(1, "FontAwesomeEnum.cs");
+            _optionOutputPath = CommandLineUtilities.GetArgument(1, "FontAwesomeEnum.cs");
             _optionPrefixAttributeName = CommandLineUtilities.GetArgument<string>(2, null);
+            _optionSvgsPath = CommandLineUtilities.GetArgument<string>(3, null);
+            _optionEnums = CommandLineUtilities.GetArgument("enums", true);
+            _optionResources = CommandLineUtilities.GetArgument("resources", true);
+            _optionDuo = CommandLineUtilities.GetArgument("duo", false);
 
             if (_optionHelp || Environment.GetCommandLineArgs().Length == 1)
             {
@@ -52,25 +60,34 @@ namespace FontAwesomeEnum
 
             Console.WriteLine("Input file path: " + _optionInputPath);
             Console.WriteLine("Output file path: " + _optionOutputPath);
-            if (_optionPrefixAttributeName != null)
+            if (_optionPrefixAttributeName != null || _optionDuo)
             {
                 Console.WriteLine("Prefix Attribute Name: " + _optionPrefixAttributeName);
-                string path = Path.GetFullPath(Path.Combine(_optionInputPath, @"..\..\svgs"));
-                if (Directory.Exists(path))
+                string path = _optionSvgsPath;
+                if (string.IsNullOrWhiteSpace(path))
                 {
-                    foreach (var prefixDir in Directory.GetDirectories(path))
+                    path = Path.GetFullPath(Path.Combine(_optionInputPath, @"..\..\..\svgs"));
+                }
+
+                Console.WriteLine("Looking for prefixes in path: " + path);
+                if (!Directory.Exists(path))
+                {
+                    Console.WriteLine("Error: there is no svgs directory path at '" + path + "'.");
+                    return;
+                }
+
+                foreach (var prefixDir in Directory.GetDirectories(path))
+                {
+                    string prefixName = Path.GetFileName(prefixDir);
+                    foreach (var fa in Directory.GetFiles(prefixDir, "*.svg"))
                     {
-                        string prefixName = Path.GetFileName(prefixDir);
-                        foreach (var fa in Directory.GetFiles(prefixDir, "*.svg"))
+                        string faName = Path.GetFileNameWithoutExtension(fa);
+                        if (!_prefixes.TryGetValue(faName, out var list))
                         {
-                            string faName = Path.GetFileNameWithoutExtension(fa);
-                            if (!_prefixes.TryGetValue(faName, out var list))
-                            {
-                                list = new List<string>();
-                                _prefixes.Add(faName, list);
-                            }
-                            list.Add(prefixName);
+                            list = new List<string>();
+                            _prefixes.Add(faName, list);
                         }
+                        list.Add(prefixName);
                     }
                 }
             }
@@ -143,81 +160,115 @@ namespace FontAwesomeEnum
 
                 writer.WriteLine("namespace FontAwesome");
                 writer.WriteLine("{");
-                writer.WriteLine("\t/// <summary>");
-                if (version != null)
+                if (_optionEnums)
                 {
-                    writer.WriteLine("\t/// Font Awesome Resources V" + version);
-                }
-                else
-                {
-                    writer.WriteLine("\t/// Font Awesome Resources.");
-                }
-                writer.WriteLine("\t/// </summary>");
-                writer.WriteLine("\tpublic enum FontAwesomeEnum");
-                writer.WriteLine("\t{");
-                for (int i = 0; i < enums.Count; i++)
-                {
-                    var kv = enums[i];
-                    writer.WriteLine("\t\t/// <summary>");
-                    writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
-                    writer.WriteLine("\t\t/// </summary>");
-                    if (_prefixes.TryGetValue(kv.Item3, out var list))
+                    writer.WriteLine("\t/// <summary>");
+                    if (version != null)
                     {
-                        foreach (var prefix in list)
-                        {
-                            writer.Write('\t');
-                            writer.Write('\t');
-                            writer.WriteLine("[Prefix(\"" + prefix + "\")]");
-                        }
+                        writer.WriteLine("\t/// Font Awesome Resources V" + version);
                     }
-                    writer.Write('\t');
-                    writer.Write('\t');
-                    writer.Write(GetValidIdentifier(kv.Item1));
-                    writer.Write(" = 0x");
-                    writer.Write(kv.Item2);
-                    if (i < (enums.Count - 1))
+                    else
                     {
-                        writer.WriteLine(',');
+                        writer.WriteLine("\t/// Font Awesome Resources.");
                     }
-                    writer.WriteLine();
-                }
-                writer.WriteLine("\t}");
-                writer.WriteLine("");
+                    writer.WriteLine("\t/// </summary>");
+                    writer.WriteLine("\tpublic enum FontAwesomeEnum");
+                    writer.WriteLine("\t{");
+                    for (int i = 0; i < enums.Count; i++)
+                    {
+                        var kv = enums[i];
+                        writer.WriteLine("\t\t/// <summary>");
+                        writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
+                        writer.WriteLine("\t\t/// </summary>");
 
-                writer.WriteLine("\t/// <summary>");
-                writer.WriteLine("\t/// Font Awesome Resources.");
-                writer.WriteLine("\t/// </summary>");
-                writer.WriteLine("\tpublic static partial class FontAwesomeResource");
-                writer.WriteLine("\t{");
-                for (int i = 0; i < enums.Count; i++)
-                {
-                    var kv = enums[i];
-                    writer.WriteLine("\t\t/// <summary>");
-                    writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
-                    writer.WriteLine("\t\t/// </summary>");
-                    if (_prefixes.TryGetValue(kv.Item3, out var list))
-                    {
-                        foreach (var prefix in list)
+                        bool duo = false;
+                        if (_prefixes.TryGetValue(kv.Item3, out var list))
                         {
-                            writer.Write('\t');
-                            writer.Write('\t');
-                            writer.WriteLine("[Prefix(\"" + prefix + "\")]");
-                        }
-                    }
+                            if (!string.IsNullOrWhiteSpace(_optionPrefixAttributeName))
+                            {
+                                foreach (var prefix in list)
+                                {
+                                    writer.Write('\t');
+                                    writer.Write('\t');
+                                    writer.WriteLine("[" + _optionPrefixAttributeName + "(\"" + prefix + "\")]");
+                                }
+                            }
 
-                    writer.WriteLine("\t\tpublic const char " + GetValidIdentifier(kv.Item1) + " = '\\u" + kv.Item2 + "';");
-                    if (i < (enums.Count - 1))
-                    {
+                            if (_optionDuo && list.Contains("solid"))
+                            {
+                                duo = true;
+                            }
+                        }
+                        writer.Write('\t');
+                        writer.Write('\t');
+                        writer.Write(GetValidIdentifier(kv.Item1));
+                        writer.Write(" = 0x");
+                        writer.Write(kv.Item2);
+                        if (duo)
+                        {
+                            writer.WriteLine(',');
+                            writer.WriteLine();
+                            writer.WriteLine("\t\t/// <summary>");
+                            writer.WriteLine("\t\t/// fa-" + kv.Item3 + " secondary glyph (10" + kv.Item2 + ").");
+                            writer.WriteLine("\t\t/// </summary>");
+                            writer.Write('\t');
+                            writer.Write('\t');
+                            writer.Write(GetValidIdentifier(kv.Item1) + "Secondary");
+                            writer.Write(" = 0x10");
+                            writer.Write(kv.Item2);
+                        }
+
+                        if (i < (enums.Count - 1))
+                        {
+                            writer.WriteLine(',');
+                        }
                         writer.WriteLine();
                     }
+                    writer.WriteLine("\t}");
                 }
-                writer.WriteLine("\t}");
+                writer.WriteLine("");
+
+                if (_optionResources)
+                {
+                    writer.WriteLine("\t/// <summary>");
+                    writer.WriteLine("\t/// Font Awesome Resources.");
+                    writer.WriteLine("\t/// </summary>");
+                    writer.WriteLine("\tpublic static partial class FontAwesomeResource");
+                    writer.WriteLine("\t{");
+                    for (int i = 0; i < enums.Count; i++)
+                    {
+                        var kv = enums[i];
+                        writer.WriteLine("\t\t/// <summary>");
+                        writer.WriteLine("\t\t/// fa-" + kv.Item3 + " glyph (" + kv.Item2 + ").");
+                        writer.WriteLine("\t\t/// </summary>");
+                        if (_prefixes.TryGetValue(kv.Item3, out var list))
+                        {
+                            if (!string.IsNullOrWhiteSpace(_optionPrefixAttributeName))
+                            {
+                                foreach (var prefix in list)
+                                {
+                                    writer.Write('\t');
+                                    writer.Write('\t');
+                                    writer.WriteLine("[" + _optionPrefixAttributeName + "(\"" + prefix + "\")]");
+                                }
+                            }
+                        }
+
+                        writer.WriteLine("\t\tpublic const char " + GetValidIdentifier(kv.Item1) + " = '\\u" + kv.Item2 + "';");
+                        if (i < (enums.Count - 1))
+                        {
+                            writer.WriteLine();
+                        }
+                    }
+                    writer.WriteLine("\t}");
+                }
+
                 writer.WriteLine("}");
             }
             Console.WriteLine("Output file was successfully written.");
         }
 
-        static string Camel(string s)
+        private static string Camel(string s)
         {
             if (s == null)
                 return s;
@@ -251,7 +302,7 @@ namespace FontAwesomeEnum
             return sb.ToString();
         }
 
-        static string GetValidIdentifier(string text)
+        private static string GetValidIdentifier(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
                 throw new ArgumentNullException(nameof(text));
@@ -298,7 +349,7 @@ namespace FontAwesomeEnum
             return sb.ToString();
         }
 
-        static bool IsValidIdentifierStart(char character)
+        private static bool IsValidIdentifierStart(char character)
         {
             if (character == '_')
                 return true;
@@ -319,7 +370,7 @@ namespace FontAwesomeEnum
             }
         }
 
-        static bool IsValidIdentifierPart(char character)
+        private static bool IsValidIdentifierPart(char character)
         {
             var category = CharUnicodeInfo.GetUnicodeCategory(character);
             switch (category)

@@ -13,18 +13,18 @@ namespace FontAwesomeEnum
             _namedArguments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _positionArguments = new Dictionary<int, string>();
 
-            string[] args = Environment.GetCommandLineArgs();
+            var args = Environment.GetCommandLineArgs();
 
-            for (int i = 0; i < args.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
                 if (i == 0)
                     continue;
 
-                string arg = Nullify(args[i]);
+                var arg = Nullify(args[i]);
                 if (arg == null)
                     continue;
 
-                string upper = arg.ToUpperInvariant();
+                var upper = arg.ToUpperInvariant();
                 if (string.Equals(arg, "/?", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(arg, "-?", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(upper, "/HELP", StringComparison.OrdinalIgnoreCase) ||
@@ -33,15 +33,16 @@ namespace FontAwesomeEnum
                     HelpRequested = true;
                 }
 
-                bool named = false;
+                var named = false;
                 if (arg[0] == '-' || arg[0] == '/')
                 {
                     arg = arg.Substring(1);
                     named = true;
                 }
+
                 string name;
                 string value;
-                int pos = arg.IndexOf(':');
+                var pos = arg.IndexOf(':');
                 if (pos < 0)
                 {
                     name = arg;
@@ -52,11 +53,14 @@ namespace FontAwesomeEnum
                     name = arg.Substring(0, pos).Trim();
                     value = arg.Substring(pos + 1).Trim();
                 }
-                _positionArguments[i - 1] = arg;
-                
+
                 if (named)
                 {
                     _namedArguments[name] = value;
+                }
+                else
+                {
+                    _positionArguments[i - 1] = arg;
                 }
             }
         }
@@ -69,8 +73,8 @@ namespace FontAwesomeEnum
         {
             get
             {
-                string line = Environment.CommandLine;
-                bool inParens = false;
+                var line = Environment.CommandLine;
+                var inParens = false;
                 for (int i = 0; i < line.Length; i++)
                 {
                     if (line[i] == ' ' && !inParens)
@@ -94,11 +98,11 @@ namespace FontAwesomeEnum
             {
                 if (arg.StartsWith("-", StringComparison.OrdinalIgnoreCase) || arg.StartsWith("/", StringComparison.OrdinalIgnoreCase))
                 {
-                    int pos = arg.IndexOfAny(new[] { '=', ':' }, 1);
-                    string argName = pos < 0 ? arg.Substring(1) : arg.Substring(1, pos - 1);
+                    var pos = arg.IndexOfAny(new[] { '=', ':' }, 1);
+                    var argName = pos < 0 ? arg.Substring(1) : arg.Substring(1, pos - 1);
                     if (string.Compare(name, argName, StringComparison.OrdinalIgnoreCase) == 0)
                     {
-                        string value = pos < 0 ? string.Empty : arg.Substring(pos + 1).Trim();
+                        var value = pos < 0 ? string.Empty : arg.Substring(pos + 1).Trim();
                         if (value.Length == 0)
                         {
                             if (typeof(T) == typeof(bool)) // special case for bool args: if it's there, return true
