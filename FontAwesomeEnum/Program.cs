@@ -39,7 +39,7 @@ namespace FontAwesomeEnum
 
         private static void SafeMain()
         {
-            Console.WriteLine("FontAwesomeEnum - Version 1.4.0 Copyright (C) Simon Mourier 2013-" + DateTime.Now.Year + ". All rights reserved.");
+            Console.WriteLine("FontAwesomeEnum - Version 1.4.1 Copyright (C) Simon Mourier 2013-" + DateTime.Now.Year + ". All rights reserved.");
             Console.WriteLine("");
 
             _optionHelp = CommandLineUtilities.GetArgument("?", false);
@@ -53,23 +53,42 @@ namespace FontAwesomeEnum
 
             if (_optionHelp || Environment.GetCommandLineArgs().Length == 1)
             {
-                Console.WriteLine("Format is FontAwesomeEnum.exe <variables.less input file path>");
-                Console.WriteLine("");
+                Console.WriteLine("Format is FontAwesomeEnum.exe <variables.less input file path> [.cs output file] [prefix] [svgs path] [options]");
+                Console.WriteLine();
+                Console.WriteLine("    .cs output file      The output C# file.");
+                Console.WriteLine("                         Default value is FontAwesomeEnum.cs");
+                Console.WriteLine();
+                Console.WriteLine("    prefix               A prefix attribute name.");
+                Console.WriteLine("                         If specified, attributes are added corresponding to Font Awesome prefixed (brands, solid, etc.)");
+                Console.WriteLine();
+                Console.WriteLine("    svgs path            A directory path that contains Font Awesome svgs.");
+                Console.WriteLine("                         Relative to variable.less path.");
+                Console.WriteLine("                         Default value is ..\\..\\svgs");
+                Console.WriteLine();
+                Console.WriteLine("Options:");
+                Console.WriteLine();
+                Console.WriteLine("    /duo                 Adds duotone enums (Font Awesome 5.10+). Implicitely needs a valid svgs implicit or explicit directory path.");
+                Console.WriteLine("    /enums:false         Prevents enums creation.");
+                Console.WriteLine("    /resources:false     Prevents resources (char) creation.");
+                Console.WriteLine();
                 return;
             }
 
             Console.WriteLine("Input file path: " + _optionInputPath);
             Console.WriteLine("Output file path: " + _optionOutputPath);
+            Console.WriteLine("Generate enums: " + _optionEnums);
+            Console.WriteLine("Generate resources: " + _optionResources);
+            Console.WriteLine("Generate duotones secondaries: " + _optionDuo);
             if (_optionPrefixAttributeName != null || _optionDuo)
             {
-                Console.WriteLine("Prefix Attribute Name: " + _optionPrefixAttributeName);
+                Console.WriteLine("Prefix attribute name: " + _optionPrefixAttributeName);
                 string path = _optionSvgsPath;
                 if (string.IsNullOrWhiteSpace(path))
                 {
-                    path = Path.GetFullPath(Path.Combine(_optionInputPath, @"..\..\..\svgs"));
+                    path = Path.GetFullPath(Path.Combine(_optionInputPath, @"..\..\svgs"));
                 }
 
-                Console.WriteLine("Looking for prefixes in path: " + path);
+                Console.WriteLine("SVGs prefixes path: " + path);
                 if (!Directory.Exists(path))
                 {
                     Console.WriteLine("Error: there is no svgs directory path at '" + path + "'.");
@@ -92,6 +111,8 @@ namespace FontAwesomeEnum
                 }
             }
 
+            Console.WriteLine();
+
             string version = null;
             var enums = new List<Tuple<string, string, string>>();
             using (var reader = new StreamReader(_optionInputPath, Encoding.Default))
@@ -113,7 +134,8 @@ namespace FontAwesomeEnum
                         {
                             version = version.Substring(1, version.Length - 3);
                         }
-                        Console.WriteLine("Version: " + version);
+
+                        Console.WriteLine("Font Awesome detected version: " + version);
                         continue;
                     }
 
@@ -136,15 +158,13 @@ namespace FontAwesomeEnum
                 while (true);
             }
 
-            Console.WriteLine();
             if (enums.Count == 0)
             {
                 Console.WriteLine("No variable was found.");
                 return;
             }
-            Console.WriteLine("Variables detected: " + enums.Count);
 
-            Console.WriteLine();
+            Console.WriteLine("Variables detected: " + enums.Count);
             using (var writer = new StreamWriter(_optionOutputPath, false))
             {
                 writer.WriteLine("//------------------------------------------------------------------------------");
