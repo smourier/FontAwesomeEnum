@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 #endif
 [assembly: AssemblyCompany("Simon Mourier")]
 [assembly: AssemblyProduct("FontAwesomeEnum")]
-[assembly: AssemblyCopyright("Copyright (C) 2013-2019 Simon Mourier. All rights reserved.")]
+[assembly: AssemblyCopyright("Copyright (C) 2013-2024 Simon Mourier. All rights reserved.")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
 [assembly: Guid("20afc51f-948b-4b2d-9d04-4e7784983075")]
